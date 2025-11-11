@@ -616,7 +616,11 @@ async function nuevaPartida() {
   };
   
   // 8. Mostrar y reproducir la cinemática
+  // 8. Mostrar y reproducir la cinemática
   if (cinematica) {
+    // 1. Ocultamos el video con OPACIDAD. Hacemos DISPLAY:BLOCK para que ocupe su espacio
+    // y esté listo para reproducirse, pero sigue siendo invisible.
+    cinematica.style.opacity = "0"; // 🟢 ¡LÍNEA NUEVA!
     cinematica.style.display = "block";
     try { cinematica.removeAttribute("controls"); } catch(e){}
     
@@ -625,21 +629,32 @@ async function nuevaPartida() {
       btnSkip.onclick = handleSkipOrEnd;
     }
 
-    // Hacer fade in para mostrar la cinemática
-    await fadeOverlay(0, 500);
-
-    cinematica.play().catch(() => {
-      console.warn("Autoplay bloqueado. Saltando cinemática.");
-      handleSkipOrEnd(); // Si falla, se salta
-    });
-    
     // Cuando el video termine NORMALMENTE, también llamamos a la limpieza
     cinematica.onended = handleSkipOrEnd;
+
+    // --- CORRECCIÓN DE FLASHEO ---
+    try {
+      // 1. INTENTAR reproducir el video (mientras la pantalla SIGUE EN NEGRO E INVISIBLE)
+      await cinematica.play();
+      
+      // 2. Si el play() tuvo éxito, AHORA SÍ hacemos el video visible de golpe.
+      // (Sigue cubierto por el velo negro, pero ya está reproduciéndose y es opaco.)
+      cinematica.style.opacity = "1"; // 🟢 ¡LÍNEA NUEVA!
+
+      // 3. AHORA SÍ, quitamos el velo negro para revelar el video en movimiento.
+      await fadeOverlay(0, 500); 
+
+    } catch (err) {
+      // 4. Si el play() falla, saltamos.
+      console.warn("Autoplay bloqueado. Saltando cinemática.", err);
+      handleSkipOrEnd();
+    }
+    // --- FIN CORRECCIÓN ---
 
   } else {
     // Fallback si no hay cinemática
     console.warn("No se encontró cinemática, saltando a la carga.");
-    handleSkipOrEnd(); // Ir directo a la parte final (esperar carga y fade in)
+    handleSkipOrEnd(); 
   }
 }
 
